@@ -1,0 +1,52 @@
+#!/bin/sh
+
+BOLD=$(tput bold)
+NORMAL=$(tput sgr0)
+
+if [ "$#" -ne 1 ]; then
+    cat << EOF
+Showass - by Gianluca Mondini
+=============================
+
+NOTE
+====
+
+This script will not alter your C++ source code.
+All CFI annotations are removed from output.
+
+USAGE
+=====
+
+$0 source_file.cpp
+
+EXAMPLE
+=======
+
+$0 myfunc.cpp
+EOF
+    exit 1
+fi
+
+ASM_FILE="/tmp/asm_out_clean.s"
+PYGM_OPTIONS="-O style=colorful"
+
+g++ $1 -S -fverbose-asm -O0 -o $ASM_FILE &&
+    sed -i".bak" '/\.cfi/d' $ASM_FILE &&
+    sed -i".bak" '/\.size/d' $ASM_FILE &&
+    sed -i".bak" '/\.ident/d' $ASM_FILE &&
+    sed -i".bak" '/\.file/d' $ASM_FILE &&
+    sed -i".bak" '/\.section/d' $ASM_FILE &&
+    sed -i".bak" '/^# */d' $ASM_FILE || { exit 1; }
+
+
+echo "$BOLD+-------------------+"
+echo "|        C++        |"
+echo "+-------------------+$NORMAL"
+
+pygmentize $PYGM_OPTIONS $1
+
+echo "$BOLD+-------------------+"
+echo "|        ASS        |"
+echo "+-------------------+$NORMAL"
+
+pygmentize $PYGM_OPTIONS $ASM_FILE
